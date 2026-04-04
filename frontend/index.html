@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinanceOS — Zorvyn</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #161a1f;
+    --surface2: #1e2329;
+    --border: #2a2f38;
+    --border2: #353c47;
+    --text: #e8eaed;
+    --muted: #6b7685;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0,212,170,0.12);
+    --accent-dim2: rgba(0,212,170,0.06);
+    --red: #ff5c5c;
+    --red-dim: rgba(255,92,92,0.12);
+    --amber: #ffb347;
+    --amber-dim: rgba(255,179,71,0.12);
+    --blue: #4d9fff;
+    --blue-dim: rgba(77,159,255,0.12);
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 6px;
+    --sidebar: 220px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+
+  /* ─── LAYOUT ─── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  #sidebar { width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  #main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar-brand { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); }
+  .brand-tag { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+  .brand-name { font-size: 18px; font-weight: 600; color: var(--text); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 8px 0; }
+  .nav-section { padding: 12px 16px 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; color: var(--muted); font-size: 13px; transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { color: var(--text); background: var(--accent-dim2); }
+  .nav-item.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .user-chip { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 500; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .logout-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px; }
+  .logout-btn:hover { color: var(--red); }
+
+  /* ─── TOP BAR ─── */
+  #topbar { padding: 14px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); flex-shrink: 0; }
+  .page-title { font-size: 16px; font-weight: 600; }
+  .page-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ─── BUTTONS ─── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: var(--sans); }
+  .btn-primary { background: var(--accent); color: #0d0f12; border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+  .btn-danger { background: var(--red-dim); color: var(--red); border-color: rgba(255,92,92,0.3); }
+  .btn-danger:hover { background: rgba(255,92,92,0.2); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* ─── CONTENT ─── */
+  #content { flex: 1; padding: 24px 28px; }
+
+  /* ─── PAGES ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── LOGIN ─── */
+  #login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+  #login-page.hidden { display: none; }
+  .login-card { width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .login-header { padding: 28px 28px 20px; border-bottom: 1px solid var(--border); }
+  .login-logo { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 8px; }
+  .login-title { font-size: 22px; font-weight: 600; }
+  .login-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .login-body { padding: 24px 28px; }
+  .login-demo { background: var(--accent-dim2); border: 1px solid rgba(0,212,170,0.2); border-radius: var(--radius); padding: 12px; margin-bottom: 20px; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.8; }
+  .login-demo span { color: var(--accent); }
+  .demo-row { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background 0.1s; }
+  .demo-row:hover { background: var(--accent-dim); }
+
+  /* ─── FORMS ─── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-control { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; color: var(--text); font-size: 13px; font-family: var(--sans); transition: border-color 0.15s; }
+  .form-control:focus { outline: none; border-color: var(--accent); }
+  .form-control option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ─── STAT CARDS ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .stat-value { font-size: 24px; font-weight: 600; font-family: var(--mono); }
+  .stat-value.income { color: var(--accent); }
+  .stat-value.expense { color: var(--red); }
+  .stat-value.balance { color: var(--blue); }
+  .stat-value.count { color: var(--amber); }
+  .stat-change { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+  /* ─── TABLE ─── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .table-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .table-title { font-size: 13px; font-weight: 600; }
+  .table-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-input { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; color: var(--text); font-size: 12px; font-family: var(--sans); width: 130px; }
+  .filter-input:focus { outline: none; border-color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 18px; text-align: left; font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); font-weight: 500; white-space: nowrap; }
+  td { padding: 11px 18px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--accent-dim2); }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-family: var(--mono); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge-income { background: var(--accent-dim); color: var(--accent); }
+  .badge-expense { background: var(--red-dim); color: var(--red); }
+  .badge-admin { background: var(--amber-dim); color: var(--amber); }
+  .badge-analyst { background: var(--blue-dim); color: var(--blue); }
+  .badge-viewer { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .badge-active { background: var(--accent-dim); color: var(--accent); }
+  .badge-inactive { background: var(--red-dim); color: var(--red); }
+  .amount-income { color: var(--accent); font-family: var(--mono); }
+  .amount-expense { color: var(--red); font-family: var(--mono); }
+  .actions-cell { display: flex; gap: 6px; }
+  .empty-state { padding: 48px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-text { font-size: 13px; }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-top: 1px solid var(--border); }
+  .pagination-info { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .pagination-btns { display: flex; gap: 6px; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; transform: translateY(12px); transition: transform 0.2s; }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 15px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 2px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 22px; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ─── TOAST ─── */
+  #toast { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.2s ease; min-width: 220px; }
+  .toast-item.success { border-left: 3px solid var(--accent); }
+  .toast-item.error { border-left: 3px solid var(--red); }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* ─── ALERT ─── */
+  .alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 14px; }
+  .alert-error { background: var(--red-dim); border: 1px solid rgba(255,92,92,0.3); color: var(--red); }
+
+  /* ─── SECTION TITLE ─── */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-title { font-size: 14px; font-weight: 600; }
+  .section-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ─── LOADING ─── */
+  .loading { text-align: center; padding: 32px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── ROLE GUARD ─── */
+  .role-guard { display: none; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">▸ ZORVYN FINTECH</div>
+      <div class="login-title">FinanceOS</div>
+      <div class="login-sub">Sign in to access the dashboard</div>
+    </div>
+    <div class="login-body">
+      <div class="login-demo">
+        <div style="margin-bottom:6px;color:var(--text);font-weight:500;">Quick login — click to fill</div>
+        <div class="demo-row" onclick="fillLogin('admin@finance.com','admin123')">▸ <span>admin</span>@finance.com / admin123</div>
+        <div class="demo-row" onclick="fillLogin('analyst@finance.com','analyst123')">▸ <span>analyst</span>@finance.com / analyst123</div>
+        <div class="demo-row" onclick="fillLogin('viewer@finance.com','viewer123')">▸ <span>viewer</span>@finance.com / viewer123</div>
+      </div>
+      <div id="login-error" class="alert alert-error" style="display:none;"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="form-control" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="doLogin()">Sign in →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-tag">▸ Zorvyn FinTech</div>
+      <div class="brand-name">FinanceOS</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('records')">
+        <span class="nav-icon">≡</span> Records
+      </div>
+      <div class="nav-section">Admin</div>
+      <div class="nav-item" id="nav-users" onclick="navigate('users')">
+        <span class="nav-icon">◉</span> Users
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="sidebar-avatar">--</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebar-name">Loading...</div>
+          <div class="user-role" id="sidebar-role">---</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="Sign out">⇥</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-sub" id="topbar-sub">Finance overview</div>
+      </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div id="content">
+
+      <!-- ── DASHBOARD PAGE ── -->
+      <div id="page-dashboard" class="page active">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total Income</div><div class="stat-value income" id="stat-income">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value expense" id="stat-expenses">—</div></div>
+          <div class="stat-card"><div class="stat-label">Net Balance</div><div class="stat-value balance" id="stat-balance">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Records</div><div class="stat-value count" id="stat-count">—</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <!-- Recent Activity -->
+          <div class="table-wrap">
+            <div class="table-header">
+              <div class="table-title">Recent Activity</div>
+            </div>
+            <table>
+              <thead><tr><th>Category</th><th>Type</th><th>Amount</th><th>Date</th></tr></thead>
+              <tbody id="recent-tbody">
+                <tr><td colspan="4"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Category Totals -->
+          <div class="table-wrap">
+            <div class="table-header">
+              <div class="table-title">Category Breakdown</div>
+            </div>
+            <table>
+              <thead><tr><th>Category</th><th>Income</th><th>Expense</th></tr></thead>
+              <tbody id="category-tbody">
+                <tr><td colspan="3"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RECORDS PAGE ── -->
+      <div id="page-records" class="page">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Financial Records</div>
+            <div class="table-filters">
+              <select class="filter-input" id="filter-type" onchange="loadRecords()">
+                <option value="">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+              <input class="filter-input" id="filter-category" placeholder="Category..." oninput="debounceLoad()" style="width:110px;"/>
+              <input class="filter-input" type="date" id="filter-start" onchange="loadRecords()" style="width:130px;"/>
+              <input class="filter-input" type="date" id="filter-end" onchange="loadRecords()" style="width:130px;"/>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✕ Clear</button>
+              <div id="add-record-btn"></div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Category</th><th>Type</th><th>Amount</th><th>Date</th><th>Notes</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="records-tbody">
+              <tr><td colspan="7"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="records-pagination" style="display:none;">
+            <span class="pagination-info" id="pagination-info"></span>
+            <div class="pagination-btns">
+              <button class="btn btn-ghost btn-sm" id="prev-btn" onclick="changePage(-1)">← Prev</button>
+              <button class="btn btn-ghost btn-sm" id="next-btn" onclick="changePage(1)">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USERS PAGE ── -->
+      <div id="page-users" class="page">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">User Management</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Record Modal -->
+<div class="modal-overlay" id="record-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="record-modal-title">New Record</div>
+      <button class="modal-close" onclick="closeModal('record-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="record-form-error" class="alert alert-error" style="display:none;"></div>
+      <input type="hidden" id="record-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input type="number" id="rec-amount" class="form-control" placeholder="0.00" step="0.01" min="0.01"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select id="rec-type" class="form-control">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <input type="text" id="rec-category" class="form-control" placeholder="e.g. Salary, Food..."/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" id="rec-date" class="form-control"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" id="rec-notes" class="form-control" placeholder="Optional description..."/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('record-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecord()">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="width:360px;">
+    <div class="modal-head">
+      <div class="modal-title">Confirm Delete</div>
+      <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:13px;">This record will be soft-deleted and hidden from all views. This action cannot be undone from the UI.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Role Modal -->
+<div class="modal-overlay" id="role-modal">
+  <div class="modal" style="width:360px;">
+    <div class="modal-head">
+      <div class="modal-title">Update Role</div>
+      <button class="modal-close" onclick="closeModal('role-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="role-user-id"/>
+      <div class="form-group">
+        <label class="form-label">New Role</label>
+        <select id="role-select" class="form-control">
+          <option value="viewer">Viewer</option>
+          <option value="analyst">Analyst</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('role-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRole()">Update Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG — update this to your API base URL
+// ═══════════════════════════════════════
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : window.location.origin.replace(':5173','').replace(':3000','');
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let token = localStorage.getItem('token') || null;
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+let currentPage = 1;
+let totalPages = 1;
+let pendingDeleteId = null;
+let debounceTimer = null;
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+window.onload = () => {
+  if (token && currentUser) {
+    showApp();
+  } else {
+    showLogin();
+  }
+};
+
+function showLogin() {
+  document.getElementById('login-page').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('login-page').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
+  renderUserInfo();
+  applyRoleUI();
+  navigate('dashboard');
+}
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+function fillLogin(email, password) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = password;
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!email || !password) { showErr(errEl, 'Email and password required'); return; }
+
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(errEl, data.error || 'Login failed'); return; }
+    token = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem('token', token);
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    showApp();
+  } catch(e) {
+    showErr(errEl, 'Cannot reach server. Is it running?');
+  }
+}
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('token');
+  localStorage.removeItem('currentUser');
+  showLogin();
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+const pageMeta = {
+  dashboard: { title: 'Dashboard', sub: 'Finance overview' },
+  records:   { title: 'Financial Records', sub: 'Browse, filter, and manage entries' },
+  users:     { title: 'User Management', sub: 'Manage access and roles' },
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const pageEl = document.getElementById(`page-${page}`);
+  if (pageEl) pageEl.classList.add('active');
+
+  const navItem = document.querySelector(`.nav-item[onclick="navigate('${page}')"]`);
+  if (navItem) navItem.classList.add('active');
+
+  const meta = pageMeta[page] || {};
+  document.getElementById('topbar-title').textContent = meta.title || page;
+  document.getElementById('topbar-sub').textContent = meta.sub || '';
+
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'records') { loadRecords(); renderAddButton(); }
+  if (page === 'users') loadUsers();
+}
+
+function renderAddButton() {
+  const btn = document.getElementById('add-record-btn');
+  if (currentUser?.role === 'admin') {
+    btn.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openRecordModal()">+ Add Record</button>`;
+  } else {
+    btn.innerHTML = '';
+  }
+}
+
+function applyRoleUI() {
+  const usersNav = document.getElementById('nav-users');
+  if (currentUser?.role === 'viewer') usersNav.style.display = 'none';
+  else usersNav.style.display = '';
+}
+
+function renderUserInfo() {
+  if (!currentUser) return;
+  const initials = currentUser.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sidebar-avatar').textContent = initials;
+  document.getElementById('sidebar-name').textContent = currentUser.name;
+  document.getElementById('sidebar-role').textContent = currentUser.role;
+}
+
+// ═══════════════════════════════════════
+// API HELPER
+// ═══════════════════════════════════════
+async function api(path, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API}${path}`, opts);
+  const data = await res.json();
+  if (res.status === 401) { doLogout(); return null; }
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+async function loadDashboard() {
+  const [sumRes, recRes, catRes] = await Promise.all([
+    api('/api/dashboard/summary'),
+    api('/api/dashboard/recent?limit=8'),
+    api('/api/dashboard/categories'),
+  ]);
+
+  if (sumRes?.ok) {
+    const s = sumRes.data;
+    document.getElementById('stat-income').textContent = fmt(s.total_income);
+    document.getElementById('stat-expenses').textContent = fmt(s.total_expenses);
+    const bal = s.net_balance;
+    const balEl = document.getElementById('stat-balance');
+    balEl.textContent = fmt(Math.abs(bal));
+    balEl.className = 'stat-value ' + (bal >= 0 ? 'income' : 'expense');
+    document.getElementById('stat-count').textContent = s.record_count;
+  }
+
+  if (recRes?.ok) {
+    const tbody = document.getElementById('recent-tbody');
+    const recs = recRes.data.recent_activity;
+    if (!recs.length) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-text">No records yet</div></div></td></tr>`;
+    } else {
+      tbody.innerHTML = recs.map(r => `
+        <tr>
+          <td>${r.category}</td>
+          <td><span class="badge badge-${r.type}">${r.type}</span></td>
+          <td class="amount-${r.type}">${r.type==='income'?'+':'-'}${fmt(r.amount)}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">${r.date}</td>
+        </tr>`).join('');
+    }
+  }
+
+  if (catRes?.ok) {
+    const tbody = document.getElementById('category-tbody');
+    const cats = catRes.data.categories;
+    if (!cats.length) {
+      tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><div class="empty-text">No data</div></div></td></tr>`;
+    } else {
+      tbody.innerHTML = cats.map(c => `
+        <tr>
+          <td style="font-weight:500;">${c.category}</td>
+          <td class="amount-income">${c.income ? '+'+fmt(c.income) : '—'}</td>
+          <td class="amount-expense">${c.expense ? '-'+fmt(c.expense) : '—'}</td>
+        </tr>`).join('');
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// RECORDS
+// ═══════════════════════════════════════
+async function loadRecords() {
+  const type = document.getElementById('filter-type')?.value || '';
+  const category = document.getElementById('filter-category')?.value || '';
+  const start = document.getElementById('filter-start')?.value || '';
+  const end = document.getElementById('filter-end')?.value || '';
+
+  let url = `/api/records/?page=${currentPage}&per_page=10`;
+  if (type) url += `&type=${type}`;
+  if (category) url += `&category=${encodeURIComponent(category)}`;
+  if (start) url += `&start_date=${start}`;
+  if (end) url += `&end_date=${end}`;
+
+  const tbody = document.getElementById('records-tbody');
+  tbody.innerHTML = `<tr><td colspan="7"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>`;
+
+  const res = await api(url);
+  if (!res?.ok) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-text">Failed to load records</div></div></td></tr>`; return; }
+
+  const { records, pagination } = res.data;
+  totalPages = pagination.pages || 1;
+
+  if (!records.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">≡</div><div class="empty-text">No records found</div></div></td></tr>`;
+    document.getElementById('records-pagination').style.display = 'none';
+    return;
+  }
+
+  const isAdmin = currentUser?.role === 'admin';
+  tbody.innerHTML = records.map(r => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">#${r.id}</td>
+      <td style="font-weight:500;">${r.category}</td>
+      <td><span class="badge badge-${r.type}">${r.type}</span></td>
+      <td class="amount-${r.type}" style="font-family:var(--mono);">${r.type==='income'?'+':'-'}${fmt(r.amount)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">${r.date}</td>
+      <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.notes||'—'}</td>
+      <td>
+        <div class="actions-cell">
+          ${isAdmin ? `
+            <button class="btn btn-ghost btn-sm" onclick="openEditRecord(${JSON.stringify(r).replace(/"/g,'&quot;')})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="openDelete(${r.id})">Del</button>
+          ` : '<span style="color:var(--muted);font-size:12px;">View only</span>'}
+        </div>
+      </td>
+    </tr>`).join('');
+
+  const pgEl = document.getElementById('records-pagination');
+  pgEl.style.display = 'flex';
+  document.getElementById('pagination-info').textContent = `Page ${pagination.page} of ${pagination.pages} · ${pagination.total} records`;
+  document.getElementById('prev-btn').disabled = !pagination.has_prev;
+  document.getElementById('next-btn').disabled = !pagination.has_next;
+}
+
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => { currentPage = 1; loadRecords(); }, 400);
+}
+
+function clearFilters() {
+  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-category').value = '';
+  document.getElementById('filter-start').value = '';
+  document.getElementById('filter-end').value = '';
+  currentPage = 1;
+  loadRecords();
+}
+
+function changePage(dir) {
+  currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+  loadRecords();
+}
+
+// ─── Record Modal ───
+function openRecordModal(record=null) {
+  document.getElementById('record-modal-title').textContent = record ? 'Edit Record' : 'New Record';
+  document.getElementById('record-id').value = record?.id || '';
+  document.getElementById('rec-amount').value = record?.amount || '';
+  document.getElementById('rec-type').value = record?.type || 'income';
+  document.getElementById('rec-category').value = record?.category || '';
+  document.getElementById('rec-date').value = record?.date || new Date().toISOString().split('T')[0];
+  document.getElementById('rec-notes').value = record?.notes || '';
+  document.getElementById('record-form-error').style.display = 'none';
+  openModal('record-modal');
+}
+
+function openEditRecord(record) { openRecordModal(record); }
+
+async function saveRecord() {
+  const id = document.getElementById('record-id').value;
+  const errEl = document.getElementById('record-form-error');
+  errEl.style.display = 'none';
+
+  const body = {
+    amount: parseFloat(document.getElementById('rec-amount').value),
+    type: document.getElementById('rec-type').value,
+    category: document.getElementById('rec-category').value.trim(),
+    date: document.getElementById('rec-date').value,
+    notes: document.getElementById('rec-notes').value.trim()
+  };
+
+  if (!body.amount || !body.category || !body.date) {
+    showErr(errEl, 'Amount, category, and date are required'); return;
+  }
+
+  const res = id
+    ? await api(`/api/records/${id}`, 'PUT', body)
+    : await api('/api/records/', 'POST', body);
+
+  if (!res?.ok) { showErr(errEl, res?.data?.error || 'Failed to save'); return; }
+
+  closeModal('record-modal');
+  toast(id ? 'Record updated' : 'Record created', 'success');
+  loadRecords();
+  loadDashboard();
+}
+
+// ─── Delete ───
+function openDelete(id) { pendingDeleteId = id; openModal('confirm-modal'); }
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  const res = await api(`/api/records/${pendingDeleteId}`, 'DELETE');
+  closeModal('confirm-modal');
+  if (res?.ok) {
+    toast('Record deleted', 'success');
+    loadRecords();
+    loadDashboard();
+  } else {
+    toast('Delete failed', 'error');
+  }
+  pendingDeleteId = null;
+}
+
+// ═══════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = `<tr><td colspan="7"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>`;
+
+  const res = await api('/api/users/');
+  if (!res?.ok) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-text">Access denied or failed</div></div></td></tr>`; return; }
+
+  const users = res.data.users;
+  const isAdmin = currentUser?.role === 'admin';
+
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">#${u.id}</td>
+      <td style="font-weight:500;">${u.name}</td>
+      <td style="color:var(--muted);font-size:12px;">${u.email}</td>
+      <td><span class="badge badge-${u.role}">${u.role}</span></td>
+      <td><span class="badge badge-${u.status}">${u.status}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">${u.created_at?.split('T')[0]||'—'}</td>
+      <td>
+        <div class="actions-cell">
+          ${isAdmin && u.id !== currentUser.id ? `
+            <button class="btn btn-ghost btn-sm" onclick="openRoleModal(${u.id},'${u.role}')">Role</button>
+            <button class="btn btn-${u.status==='active'?'danger':'ghost'} btn-sm" onclick="toggleStatus(${u.id},'${u.status}')">
+              ${u.status==='active'?'Deactivate':'Activate'}
+            </button>
+          ` : '<span style="color:var(--muted);font-size:12px;">—</span>'}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openRoleModal(userId, currentRole) {
+  document.getElementById('role-user-id').value = userId;
+  document.getElementById('role-select').value = currentRole;
+  openModal('role-modal');
+}
+
+async function saveRole() {
+  const userId = document.getElementById('role-user-id').value;
+  const role = document.getElementById('role-select').value;
+  const res = await api(`/api/users/${userId}/role`, 'PATCH', { role });
+  closeModal('role-modal');
+  if (res?.ok) { toast('Role updated', 'success'); loadUsers(); }
+  else toast(res?.data?.error || 'Failed', 'error');
+}
+
+async function toggleStatus(userId, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const res = await api(`/api/users/${userId}/status`, 'PATCH', { status: newStatus });
+  if (res?.ok) { toast(`User ${newStatus}`, 'success'); loadUsers(); }
+  else toast('Failed to update status', 'error');
+}
+
+// ═══════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function fmt(n) {
+  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✓':'✕'}</span> ${msg}`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+</script>
+</body>
+</html>

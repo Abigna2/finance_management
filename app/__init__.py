@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flasgger import Swagger
 from config import config
+import os
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -15,9 +16,7 @@ SWAGGER_TEMPLATE = {
         "title": "Finance Data Processing API",
         "description": "Backend API for Finance Dashboard with Role-Based Access Control",
         "version": "1.0.0",
-        "contact": {
-            "name": "Abigna Katakam"
-        }
+        "contact": { "name": "Abigna Katakam" }
     },
     "securityDefinitions": {
         "Bearer": {
@@ -32,14 +31,7 @@ SWAGGER_TEMPLATE = {
 
 SWAGGER_CONFIG = {
     "headers": [],
-    "specs": [
-        {
-            "endpoint": "apispec",
-            "route": "/apispec.json",
-            "rule_filter": lambda rule: True,
-            "model_filter": lambda tag: True,
-        }
-    ],
+    "specs": [{"endpoint": "apispec", "route": "/apispec.json", "rule_filter": lambda rule: True, "model_filter": lambda tag: True}],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
     "specs_route": "/docs/"
@@ -47,10 +39,9 @@ SWAGGER_CONFIG = {
 
 
 def create_app(env="default"):
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
     app.config.from_object(config[env])
 
-    # Init extensions
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
@@ -66,5 +57,12 @@ def create_app(env="default"):
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(records_bp, url_prefix="/api/records")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+
+    # Serve frontend
+    frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+
+    @app.route("/")
+    def serve_frontend():
+        return send_from_directory(frontend_dir, "index.html")
 
     return app
