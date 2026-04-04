@@ -445,9 +445,9 @@
 // ═══════════════════════════════════════
 // CONFIG — update this to your API base URL
 // ═══════════════════════════════════════
-const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000'
-  : window.location.origin.replace(':5173','').replace(':3000','');
+  : '';
 
 // ═══════════════════════════════════════
 // STATE
