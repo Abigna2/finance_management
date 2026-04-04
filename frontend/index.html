@@ -185,26 +185,57 @@
 </head>
 <body>
 
-<!-- ═══ LOGIN ═══ -->
+<!-- ═══ LOGIN / SIGNUP ═══ -->
 <div id="login-page">
-  <div class="login-card">
+  <div class="login-card" style="width:400px;">
     <div class="login-header">
       <div class="login-logo">▸ ZORVYN FINTECH</div>
       <div class="login-title">FinanceOS</div>
-      <div class="login-sub">Sign in to access the dashboard</div>
+      <div class="login-sub" id="auth-sub">Sign in to access the dashboard</div>
     </div>
     <div class="login-body">
+      <div id="auth-error" class="alert alert-error" style="display:none;"></div>
 
-      <div id="login-error" class="alert alert-error" style="display:none;"></div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" id="login-email" class="form-control" placeholder="you@example.com"/>
+      <div id="signin-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="login-email" class="form-control" placeholder="you@example.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="doLogin()">Sign in →</button>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted);">
+          No account? <span style="color:var(--accent);cursor:pointer;" onclick="toggleAuth('signup')">Create one</span>
+        </p>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="login-password" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+
+      <div id="signup-form" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="Abigna Katakam"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="you@example.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select id="reg-role" class="form-control">
+            <option value="viewer">Viewer — view dashboard only</option>
+            <option value="analyst">Analyst — view records and insights</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="doRegister()">Create Account →</button>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted);">
+          Already have an account? <span style="color:var(--accent);cursor:pointer;" onclick="toggleAuth('signin')">Sign in</span>
+        </p>
       </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="doLogin()">Sign in →</button>
     </div>
   </div>
 </div>
@@ -289,6 +320,26 @@
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- Trends -->
+        <div class="table-wrap" style="margin-top:16px;">
+          <div class="table-header">
+            <div class="table-title">Income vs Expense Trends</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="filter-input" id="trend-period" onchange="loadTrends()" style="width:120px;">
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+              </select>
+              <input class="filter-input" type="number" id="trend-year" placeholder="Year e.g. 2026" onchange="loadTrends()" style="width:140px;"/>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Period</th><th>Income</th><th>Expense</th><th>Net</th></tr></thead>
+            <tbody id="trends-tbody">
+              <tr><td colspan="4"><div class="loading"><span class="spinner"></span>Loading...</div></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -486,6 +537,53 @@ function showApp() {
 // ═══════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════
+function toggleAuth(mode) {
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if (mode === 'signup') {
+    document.getElementById('signin-form').style.display = 'none';
+    document.getElementById('signup-form').style.display = 'block';
+    document.getElementById('auth-sub').textContent = 'Create a new account';
+  } else {
+    document.getElementById('signup-form').style.display = 'none';
+    document.getElementById('signin-form').style.display = 'block';
+    document.getElementById('auth-sub').textContent = 'Sign in to access the dashboard';
+  }
+}
+
+async function doRegister() {
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role').value;
+
+  if (!name || !email || !password) { showErr(errEl, 'All fields are required'); return; }
+  if (password.length < 6) { showErr(errEl, 'Password must be at least 6 characters'); return; }
+
+  try {
+    const res = await fetch(`${API}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role })
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(errEl, data.error || 'Registration failed'); return; }
+
+    // Auto login after register
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-password').value = password;
+    toggleAuth('signin');
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = 'Account created! Signing you in...';
+    errEl.style.display = 'block';
+    setTimeout(() => doLogin(), 800);
+  } catch(e) {
+    showErr(errEl, 'Cannot reach server');
+  }
+}
+
 function fillLogin(email, password) {
   document.getElementById('login-email').value = email;
   document.getElementById('login-password').value = password;
@@ -596,7 +694,38 @@ async function api(path, method='GET', body=null) {
 // ═══════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════
+async function loadTrends() {
+  const period = document.getElementById('trend-period')?.value || 'monthly';
+  const year = document.getElementById('trend-year')?.value || '';
+  let url = `/api/dashboard/trends?period=${period}`;
+  if (year) url += `&year=${year}`;
+
+  const tbody = document.getElementById('trends-tbody');
+  if (!tbody) return;
+
+  const res = await api(url);
+  if (!res?.ok) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:16px;color:var(--muted);text-align:center;">Trends require Analyst or Admin role</td></tr>`;
+    return;
+  }
+
+  const trends = res.data.trends;
+  if (!trends.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-text">No trend data yet</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = trends.map(t => `
+    <tr>
+      <td style="font-family:var(--mono);font-weight:500;">${t.period}</td>
+      <td class="amount-income">${t.income ? '+'+fmt(t.income) : '—'}</td>
+      <td class="amount-expense">${t.expense ? '-'+fmt(t.expense) : '—'}</td>
+      <td class="${t.net >= 0 ? 'amount-income' : 'amount-expense'}" style="font-weight:500;">${t.net >= 0 ? '+' : ''}${fmt(Math.abs(t.net))}</td>
+    </tr>`).join('');
+}
+
 async function loadDashboard() {
+  loadTrends();
   const [sumRes, recRes, catRes] = await Promise.all([
     api('/api/dashboard/summary'),
     api('/api/dashboard/recent?limit=8'),
