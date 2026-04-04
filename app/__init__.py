@@ -2,6 +2,7 @@ from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from flask_cors import CORS
 from flasgger import Swagger
 from config import config
 import os
@@ -41,6 +42,9 @@ SWAGGER_CONFIG = {
 def create_app(env="default"):
     app = Flask(__name__, static_folder=None)
     app.config.from_object(config[env])
+
+    # Enable CORS for all routes
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     db.init_app(app)
     jwt.init_app(app)
