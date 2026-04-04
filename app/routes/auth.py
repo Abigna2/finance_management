@@ -79,7 +79,7 @@ def login():
     data = request.get_json()
     try:
         user = UserService.verify_login(data.get("email"), data.get("password"))
-        token = create_access_token(identity=user.id)
+        token = create_access_token(identity=str(user.id))
         return jsonify({
             "message": "Login successful",
             "access_token": token,

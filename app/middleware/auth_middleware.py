@@ -19,7 +19,7 @@ def require_role(*allowed_roles):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
-            user_id = get_jwt_identity()
+            user_id = int(get_jwt_identity())  # identity is stored as string
             user = User.query.get(user_id)
 
             if not user:
@@ -41,5 +41,5 @@ def require_role(*allowed_roles):
 
 def get_current_user():
     """Helper to get the current logged-in user object."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())  # identity is stored as string
     return User.query.get(user_id)
