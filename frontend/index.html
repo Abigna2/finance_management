@@ -550,7 +550,7 @@ async function doRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
-  const role = document.getElementById('reg-role').value;
+  const role = 'viewer';  // always viewer on signup
 
   if (!name || !email || !password) { showErr(errEl, 'All fields are required'); return; }
   if (password.length < 6) { showErr(errEl, 'Password must be at least 6 characters'); return; }
