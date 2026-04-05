@@ -36,14 +36,11 @@ class UserService:
         if User.query.filter_by(email=data["email"]).first():
             raise ValueError("Email already registered")
 
-        role_value = data.get("role", "viewer")
-        if role_value not in [r.value for r in RoleEnum]:
-            raise ValueError("Invalid role. Choose from: viewer, analyst, admin")
-
+        # New users always start as viewer — admin can upgrade via /api/users/:id/role
         user = User(
             name=data["name"],
             email=data["email"],
-            role=RoleEnum(role_value)
+            role=RoleEnum.viewer
         )
         user.set_password(data["password"])
 

@@ -189,9 +189,9 @@
 <div id="login-page">
   <div class="login-card" style="width:400px;">
     <div class="login-header">
-      <div class="login-logo">▸ ZORVYN FINTECH</div>
-      <div class="login-title">FinanceOS</div>
-      <div class="login-sub" id="auth-sub">Sign in to access the dashboard</div>
+      <div class="login-logo" style="font-size:15px;letter-spacing:0.12em;">▸ ZORVYN FINTECH</div>
+      <div class="login-title" style="font-size:26px;">Finance Dashboard System</div>
+      <div class="login-sub" id="auth-sub">Sign in to access your dashboard</div>
     </div>
     <div class="login-body">
       <div id="auth-error" class="alert alert-error" style="display:none;"></div>
@@ -223,13 +223,6 @@
         <div class="form-group">
           <label class="form-label">Password</label>
           <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Role</label>
-          <select id="reg-role" class="form-control">
-            <option value="viewer">Viewer — view dashboard only</option>
-            <option value="analyst">Analyst — view records and insights</option>
-          </select>
         </div>
         <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="doRegister()">Create Account →</button>
         <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted);">
