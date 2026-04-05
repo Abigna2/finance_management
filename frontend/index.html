@@ -189,8 +189,8 @@
 <div id="login-page">
   <div class="login-card" style="width:400px;">
     <div class="login-header">
-      <div class="login-logo" style="font-size:15px;letter-spacing:0.12em;">▸ ZORVYN FINTECH</div>
-      <div class="login-title" style="font-size:26px;">Finance Dashboard System</div>
+      <div class="login-logo" style="font-size:13px;letter-spacing:0.12em;">▸ ZORVYN FINTECH</div>
+      <div class="login-title" style="font-size:26px;">Finance Dashboard</div>
       <div class="login-sub" id="auth-sub">Sign in to access your dashboard</div>
     </div>
     <div class="login-body">
@@ -585,7 +585,7 @@ function fillLogin(email, password) {
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
+  const errEl = document.getElementById('auth-error');
   errEl.style.display = 'none';
 
   if (!email || !password) { showErr(errEl, 'Email and password required'); return; }
