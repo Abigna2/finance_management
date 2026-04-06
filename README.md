@@ -1,6 +1,9 @@
 # Finance Data Processing and Access Control Backend
 
-A Flask-based backend for a finance dashboard system with role-based access control, financial records management, and summary analytics.
+A Flask-based backend for a finance dashboard system with role-based access control, financial records management, and summary analytics — built for Zorvyn FinTech internship assessment.
+
+**Live Demo:** https://financemanagement-production.up.railway.app
+**API Docs (Swagger):** https://financemanagement-production.up.railway.app/docs/
 
 ---
 
@@ -9,10 +12,11 @@ A Flask-based backend for a finance dashboard system with role-based access cont
 | Layer | Choice |
 |---|---|
 | Framework | Flask 3.0 |
-| Database | PostgreSQL |
+| Database | PostgreSQL (Neon cloud) |
 | ORM | SQLAlchemy + Flask-Migrate |
 | Auth | JWT (flask-jwt-extended) |
 | API Docs | Flasgger (Swagger UI) |
+| Deployment | Railway |
 
 ---
 
@@ -21,19 +25,27 @@ A Flask-based backend for a finance dashboard system with role-based access cont
 ```
 finance_backend/
 ├── app/
-│   ├── __init__.py          # App factory, extensions, Swagger config
+│   ├── __init__.py              # App factory, extensions, Swagger config, frontend serving
 │   ├── models/
-│   │   └── models.py        # User, FinancialRecord models
+│   │   └── models.py            # User, FinancialRecord models with enums
 │   ├── routes/
-│   │   ├── auth.py          # Register, Login
-│   │   ├── users.py         # User management
-│   │   ├── records.py       # Financial records CRUD
-│   │   └── dashboard.py     # Summary and analytics APIs
+│   │   ├── auth.py              # Register, Login
+│   │   ├── users.py             # User management (thin HTTP handlers)
+│   │   ├── records.py           # Financial records CRUD (thin HTTP handlers)
+│   │   └── dashboard.py         # Summary and analytics APIs (thin HTTP handlers)
+│   ├── services/
+│   │   ├── record_service.py    # All business logic for records
+│   │   ├── user_service.py      # All business logic for users
+│   │   └── dashboard_service.py # All aggregation and analytics logic
 │   ├── middleware/
-│   │   └── auth_middleware.py  # Role-based access control decorator
-│   └── schemas/             # Reserved for future marshmallow schemas
-├── config.py                # Environment config
-├── run.py                   # Entry point + CLI seed command
+│   │   └── auth_middleware.py   # @require_role() RBAC decorator
+│   └── schemas/
+├── frontend/
+│   └── index.html               # Single-page dashboard (served by Flask)
+├── config.py                    # Environment config with Neon SSL options
+├── run.py                       # Entry point + CLI seed command
+├── Procfile                     # Railway deployment config
+├── railway.json                 # Railway build config
 ├── requirements.txt
 └── .env.example
 ```
@@ -45,10 +57,11 @@ finance_backend/
 ### 1. Clone and create virtual environment
 
 ```bash
-git clone <your-repo-url>
-cd finance_backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+git clone https://github.com/Abigna2/finance_management
+cd finance_management
+py -3.11 -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
 ```
 
 ### 2. Install dependencies
@@ -69,24 +82,23 @@ cp .env.example .env
 FLASK_ENV=development
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
-DATABASE_URL=postgresql://username:password@localhost:5432/finance_db
+DATABASE_URL=postgresql://username:password@host:5432/finance_db?sslmode=require
 ```
 
-### 4. Create database and run migrations
+### 4. Run migrations
 
 ```bash
-flask db init
-flask db migrate -m "initial migration"
+set FLASK_APP=run.py        # Windows
+export FLASK_APP=run.py     # Mac/Linux
 flask db upgrade
 ```
 
-### 5. Seed sample users (optional)
+### 5. Seed sample users
 
 ```bash
 flask seed
 ```
 
-This creates:
 | Email | Password | Role |
 |---|---|---|
 | admin@finance.com | admin123 | Admin |
@@ -99,8 +111,9 @@ This creates:
 python run.py
 ```
 
-Server runs at: `http://localhost:5000`  
-Swagger docs at: `http://localhost:5000/docs/`
+- App: `http://localhost:5000`
+- Swagger docs: `http://localhost:5000/docs/`
+- Frontend dashboard: `http://localhost:5000`
 
 ---
 
@@ -108,9 +121,9 @@ Swagger docs at: `http://localhost:5000/docs/`
 
 ### Authentication
 
-| Method | Endpoint | Description | Auth Required |
+| Method | Endpoint | Description | Auth |
 |---|---|---|---|
-| POST | `/api/auth/register` | Register a new user | No |
+| POST | `/api/auth/register` | Register (always assigned viewer role) | No |
 | POST | `/api/auth/login` | Login, returns JWT token | No |
 
 ### Users
@@ -127,19 +140,17 @@ Swagger docs at: `http://localhost:5000/docs/`
 
 | Method | Endpoint | Description | Roles |
 |---|---|---|---|
-| GET | `/api/records/` | List records (with filters + pagination) | All |
+| GET | `/api/records/` | List records (filters + pagination) | All |
 | GET | `/api/records/:id` | Get single record | All |
 | POST | `/api/records/` | Create a record | Admin |
 | PUT | `/api/records/:id` | Update a record | Admin |
 | DELETE | `/api/records/:id` | Soft delete a record | Admin |
 
-**Query filters for GET /api/records/:**
+**Filters for GET /api/records/:**
 - `type` — `income` or `expense`
 - `category` — partial match
-- `start_date` — format `YYYY-MM-DD`
-- `end_date` — format `YYYY-MM-DD`
-- `page` — default 1
-- `per_page` — default 10, max 100
+- `start_date` / `end_date` — format `YYYY-MM-DD`
+- `page` / `per_page` — pagination (max 100)
 
 ### Dashboard
 
@@ -150,10 +161,6 @@ Swagger docs at: `http://localhost:5000/docs/`
 | GET | `/api/dashboard/trends` | Monthly or weekly trends | Analyst, Admin |
 | GET | `/api/dashboard/recent` | Recent activity | All |
 
-**Query params for GET /api/dashboard/trends:**
-- `period` — `monthly` (default) or `weekly`
-- `year` — filter by year (e.g. `2026`)
-
 ---
 
 ## Role-Based Access Control
@@ -161,32 +168,33 @@ Swagger docs at: `http://localhost:5000/docs/`
 | Action | Viewer | Analyst | Admin |
 |---|---|---|---|
 | View records | ✅ | ✅ | ✅ |
-| View summary | ✅ | ✅ | ✅ |
+| View summary & categories | ✅ | ✅ | ✅ |
 | View trends | ❌ | ✅ | ✅ |
 | Create/update/delete records | ❌ | ❌ | ✅ |
 | Manage users | ❌ | View only | ✅ |
 
-Access control is enforced via the `@require_role()` decorator in `app/middleware/auth_middleware.py`.
+Enforced via `@require_role()` decorator in `app/middleware/auth_middleware.py`. Inactive users are blocked before role checks.
 
 ---
 
 ## Assumptions Made
 
-1. **Role assignment at registration** — The role can be passed during registration for simplicity. In production, a new user would always default to `viewer` and only an admin could upgrade them.
-2. **Soft deletes** — Records are never hard deleted; `is_deleted=True` hides them from all queries. This preserves data integrity and audit trails.
-3. **Amount validation** — Amounts must be positive numbers. The sign of the entry is determined by the `type` field (`income` or `expense`), not the amount itself.
-4. **Single token auth** — No refresh tokens are implemented. Tokens expire after 1 hour.
-5. **No multi-tenancy** — All users share the same financial records pool. An admin manages the whole system.
+1. **Shared data model** — This is an internal company finance dashboard, not a personal finance app. All users interact with the same financial records based on their role. This matches the assignment scenario of a "finance dashboard system where different users interact with financial records based on their role."
+2. **Registration defaults to viewer** — New users always get the viewer role. Only an admin can upgrade roles via `/api/users/:id/role`. This reflects how real internal systems work.
+3. **Soft deletes** — Records are never hard deleted; `is_deleted=True` hides them from all queries. Preserves data integrity and audit trails — important in financial systems.
+4. **Amount validation** — Amounts must be positive. The type field (`income`/`expense`) determines the sign, not the amount.
+5. **JWT only, no refresh tokens** — Tokens expire after 24 hours. Refresh tokens not implemented for simplicity.
 
 ## Tradeoffs Considered
 
-- **SQLite vs PostgreSQL** — Chose PostgreSQL for correctness with aggregation queries (especially `extract` for trends). SQLite handles these differently and can cause issues.
-- **Flask vs FastAPI** — Flask requires slightly more manual wiring, but its simplicity makes the architecture very readable and easy to follow for reviewers.
-- **Soft delete vs hard delete** — Soft delete adds an `is_deleted` flag. This is better practice in financial systems where audit history matters.
+- **Service layer vs fat routes** — Chose to separate business logic into `services/` so routes are thin HTTP handlers only. Makes logic independently testable and easier to read.
+- **PostgreSQL vs SQLite** — PostgreSQL chosen for correct `extract()` behavior in trend queries. SQLite handles date extraction differently and can produce inconsistent results.
+- **Flask vs FastAPI** — Flask requires more manual wiring but its explicit structure makes the architecture easier to follow for reviewers. Auto-docs via Flasgger compensates for missing FastAPI schema generation.
+- **Soft delete vs hard delete** — `is_deleted` flag chosen over hard delete. Financial records should never be permanently destroyed for audit purposes.
 
 ---
 
 ## Author
 
-Abigna Katakam  
-Backend Developer Intern Assignment — Zorvyn FinTech Pvt. Ltd.
+Abigna Katakam
+Backend Developer Intern Assessment — Zorvyn FinTech Pvt. Ltd.
